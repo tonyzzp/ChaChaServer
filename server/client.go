@@ -60,7 +60,7 @@ func (this *Client) startRead() {
 			return
 		}
 		this.timeout(time.Minute)
-		logs.Info("收到数据%v", string(content[:count]))
+		logs.Info("收到数据 %v", string(content[:count]))
 	}
 }
 

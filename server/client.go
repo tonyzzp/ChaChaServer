@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"github.com/astaxie/beego/logs"
 	"github.com/tonyzzp/gocommon"
 	"net"
@@ -9,17 +8,29 @@ import (
 )
 
 type Client struct {
-	conn      *net.TCPConn
-	alive     bool
-	closeChan chan int
+	server      *Server
+	conn        *net.TCPConn
+	alive       bool
+	closeChan   chan int
+	sendingData chan []byte
 }
 
-func NewClient(conn *net.TCPConn) *Client {
+func NewClient(server *Server, conn *net.TCPConn) *Client {
 	c := new(Client)
+	c.server = server
 	c.conn = conn
 	c.alive = true
 	c.init()
+	c.sendingData = make(chan []byte)
 	return c
+}
+
+func (this *Client) init() {
+	this.timeout(10 * time.Second)
+}
+
+func (this *Client) RemoteAdd() net.Addr {
+	return this.conn.RemoteAddr()
 }
 
 // 设置一个定时器， d时间之后关闭client
@@ -33,13 +44,18 @@ func (this *Client) timeout(d time.Duration) {
 	})
 }
 
-func (this *Client) init() {
-	this.timeout(10 * time.Second)
+func (this *Client) SendData(data []byte) {
+	this.sendingData <- data
 }
 
 func (this *Client) Close() {
+	if !this.alive {
+		return
+	}
+	this.alive = false
 	close(this.closeChan)
 	this.conn.Close()
+	close(this.sendingData)
 	logs.Info("关闭客户端%v", this.conn.RemoteAddr())
 }
 
@@ -55,16 +71,22 @@ func (this *Client) startRead() {
 		content := make([]byte, 100)
 		count, e := this.conn.Read(content)
 		if e != nil {
-			fmt.Println(e)
+			logs.Info(e)
 			this.Close()
 			return
 		}
 		this.timeout(time.Minute)
 		logs.Info("收到数据 %v", string(content[:count]))
+		msg := new(Msg)
+		msg.Client = this
+		msg.Data = content[:count]
+		this.server.onClientMsg(msg)
 	}
 }
 
 // 从缓冲队列里取数据出来发送出去。 阻塞
 func (this *Client) startSend() {
-
+	for data := range this.sendingData {
+		this.conn.Write(data)
+	}
 }

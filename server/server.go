@@ -7,15 +7,15 @@ import (
 )
 
 type Server struct {
-	listener *net.TCPListener
-	running  bool
+	listener  *net.TCPListener
+	running   bool
+	processor *Processor
 }
 
 func NewServer(localAddress string) *Server {
 	svr := new(Server)
 	svr.running = true
-
-	logs.GetLogger()
+	svr.processor = NewProcessor()
 
 	ip, e := net.ResolveTCPAddr("tcp", localAddress)
 	if e != nil {
@@ -36,6 +36,7 @@ func (this *Server) Start() {
 	if this.listener == nil {
 		panic("请使用NewServer来进行创建")
 	}
+	this.processor.Start()
 	for this.running {
 		conn, e := this.listener.AcceptTCP()
 		if e != nil {
@@ -48,6 +49,10 @@ func (this *Server) Start() {
 
 // 收到一个客户端链接
 func (this *Server) onAccept(conn *net.TCPConn) {
-	client := NewClient(conn)
+	client := NewClient(this, conn)
 	client.Start()
+}
+
+func (this *Server) onClientMsg(msg *Msg) {
+	this.processor.Append(msg)
 }

@@ -1,8 +1,11 @@
 package server
 
 import (
+	"fmt"
 	"github.com/astaxie/beego/logs"
 	"github.com/tonyzzp/gocommon"
+	"github.com/tonyzzp/gocommon/bytesutil"
+	"io"
 	"net"
 	"time"
 )
@@ -68,18 +71,27 @@ func (this *Client) Start() {
 // 读取数据。  阻塞
 func (this *Client) startRead() {
 	for this.alive {
-		content := make([]byte, 100)
-		count, e := this.conn.Read(content)
+		header := make([]byte, 4)
+		_, e := io.ReadFull(this.conn, header)
+		if e != nil {
+			logs.Info(e)
+			this.Close()
+			return
+		}
+		size := bytesutil.BytesToInt32(header)
+		fmt.Println(size)
+		content := make([]byte, size)
+		_, e = io.ReadFull(this.conn, content)
 		if e != nil {
 			logs.Info(e)
 			this.Close()
 			return
 		}
 		this.timeout(time.Minute)
-		logs.Info("收到数据 %v", string(content[:count]))
+		logs.Info("收到数据,%v size:%v", this.conn.RemoteAddr(), size)
 		msg := new(Msg)
 		msg.Client = this
-		msg.Data = content[:count]
+		msg.Data = content
 		this.server.onClientMsg(msg)
 	}
 }

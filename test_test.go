@@ -3,18 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/tonyzzp/gocommon/bytesutil"
-	"net"
 	"testing"
 )
-
-func Test_client(t *testing.T) {
-	addr, _ := net.ResolveTCPAddr("tcp", ":2626")
-	conn, e := net.DialTCP("tcp", nil, addr)
-	fmt.Println(e)
-	conn.Write([]byte("章治鹏"))
-	conn.Write([]byte("zzp"))
-	conn.Close()
-}
 
 func Test_readint(t *testing.T) {
 	var i int32 = 2147483647

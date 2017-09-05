@@ -14,4 +14,17 @@ func init() {
 	orm.RegisterModel(new(User))
 	orm.RunSyncdb("default", false, true)
 	ORM = orm.NewOrm()
+
+	_, e := ORM.Raw(`create table if not exists friends(
+		id integer primary key autoincrement,
+		user_id integer,
+		friend_id integer)
+	`).Exec()
+	if e != nil {
+		panic(e)
+	}
+	_, e = ORM.Raw("create index if not exists index_friends on friends (user_id,friend_id)").Exec()
+	if e != nil {
+		panic(e)
+	}
 }

@@ -3,8 +3,8 @@ package db
 import "time"
 
 type User struct {
-	Id       int32
-	UserName string    `orm:"type(text);unique"`
-	PassWord string    `orm:"type(text)"`
+	Id       int
+	UserName string `orm:"unique"`
+	PassWord string
 	Created  time.Time `orm:"auto_now_add;type(datetime)"`
 }

@@ -1,6 +1,6 @@
 package db
 
-func FindUserById(id int32) *User {
+func FindUserById(id int) *User {
 	u := new(User)
 	u.Id = id
 	e := ORM.Read(u)
@@ -25,4 +25,14 @@ func FindUserByUserName(userName string) *User {
 func InsertUser(u *User) bool {
 	_, e := ORM.Insert(u)
 	return e != nil
+}
+
+func FetchUsrs(ids []int) []*User {
+	r := make([]*User, len(ids))
+	for i := 0; i < len(ids); i++ {
+		id := ids[i]
+		u := FindUserById(id)
+		r[i] = u
+	}
+	return r
 }

@@ -86,13 +86,14 @@ func read() {
 
 func main() {
 	ip, _ := net.ResolveTCPAddr("tcp", ":2626")
+	fmt.Println("开始连接", ip)
 	conn, _ = net.DialTCP("tcp", nil, ip)
 	if conn != nil {
 		fmt.Println("连接服务器成功")
 		fmt.Println(`1.注册 reg:NAME PASSWORD
 2.登录 login:NAME PASSWORD
 3.发消息 send:RECEIVER hello!
-3.退出 exit`)
+4.退出 exit`)
 	} else {
 		fmt.Println("连接失败")
 		return
@@ -110,6 +111,8 @@ func main() {
 		f := cmds[strs[0]]
 		if f != nil {
 			f(strs[1])
+		} else {
+			fmt.Println("命令错误，正确命令如：   login:aaa 111")
 		}
 	}
 }

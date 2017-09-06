@@ -1,10 +1,10 @@
 package server
 
 import (
-	"fmt"
 	"github.com/astaxie/beego/logs"
+	"github.com/gogo/protobuf/proto"
+	"github.com/tonyzzp/ChaCha_Server/util"
 	"github.com/tonyzzp/gocommon"
-	"github.com/tonyzzp/gocommon/bytesutil"
 	"io"
 	"net"
 	"time"
@@ -16,6 +16,7 @@ type Client struct {
 	alive       bool
 	closeChan   chan int
 	sendingData chan []byte
+	userid      int
 }
 
 func NewClient(server *Server, conn *net.TCPConn) *Client {
@@ -24,12 +25,12 @@ func NewClient(server *Server, conn *net.TCPConn) *Client {
 	c.conn = conn
 	c.alive = true
 	c.init()
-	c.sendingData = make(chan []byte)
+	c.sendingData = make(chan []byte, 100)
 	return c
 }
 
 func (this *Client) init() {
-	this.timeout(10 * time.Second)
+	this.timeout(time.Minute)
 }
 
 func (this *Client) RemoteAdd() net.Addr {
@@ -47,8 +48,14 @@ func (this *Client) timeout(d time.Duration) {
 	})
 }
 
-func (this *Client) SendData(data []byte) {
-	this.sendingData <- data
+func (this *Client) SendData(cmd int, msg proto.Message) {
+	if this.alive {
+		data := util.Cmd2Bytes(cmd, msg)
+		this.sendingData <- data
+	} else {
+		logs.Warn("Client.SendData 用户已经无效")
+		this.Close()
+	}
 }
 
 func (this *Client) Close() {
@@ -56,10 +63,12 @@ func (this *Client) Close() {
 		return
 	}
 	this.alive = false
+	this.server.onUserLogout(this)
 	close(this.closeChan)
 	this.conn.Close()
 	close(this.sendingData)
 	logs.Info("关闭客户端%v", this.conn.RemoteAddr())
+	this = new(Client)
 }
 
 // 启动协程开始读取和发送数据
@@ -71,15 +80,18 @@ func (this *Client) Start() {
 // 读取数据。  阻塞
 func (this *Client) startRead() {
 	for this.alive {
-		header := make([]byte, 4)
-		_, e := io.ReadFull(this.conn, header)
+		size, e := util.ReadInt32(this.conn)
 		if e != nil {
 			logs.Info(e)
 			this.Close()
 			return
 		}
-		size := bytesutil.BytesToInt32(header)
-		fmt.Println(size)
+		cmd, e := util.ReadInt32(this.conn)
+		if e != nil {
+			logs.Info(e)
+			this.Close()
+			return
+		}
 		content := make([]byte, size)
 		_, e = io.ReadFull(this.conn, content)
 		if e != nil {
@@ -87,10 +99,11 @@ func (this *Client) startRead() {
 			this.Close()
 			return
 		}
-		this.timeout(time.Minute)
-		logs.Info("收到数据,%v size:%v", this.conn.RemoteAddr(), size)
+		this.timeout(time.Minute * 30)
+		logs.Info("收到数据,%v cmd:%v size:%v", this.conn.RemoteAddr(), cmd, size)
 		msg := new(Msg)
 		msg.Client = this
+		msg.Cmd = cmd
 		msg.Data = content
 		this.server.onClientMsg(msg)
 	}

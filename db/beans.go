@@ -7,4 +7,6 @@ type User struct {
 	UserName string `orm:"unique"`
 	PassWord string
 	Created  time.Time `orm:"auto_now_add;type(datetime)"`
+	Sex      int
+	Head     string
 }

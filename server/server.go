@@ -7,15 +7,17 @@ import (
 )
 
 type Server struct {
-	listener  *net.TCPListener
-	running   bool
-	processor *Processor
+	listener    *net.TCPListener
+	running     bool
+	processor   *Processor
+	onlineUsers map[int]*Client
 }
 
 func NewServer(localAddress string) *Server {
 	svr := new(Server)
 	svr.running = true
-	svr.processor = NewProcessor()
+	svr.processor = NewProcessor(svr)
+	svr.onlineUsers = make(map[int]*Client)
 
 	ip, e := net.ResolveTCPAddr("tcp", localAddress)
 	if e != nil {
@@ -53,6 +55,19 @@ func (this *Server) onAccept(conn *net.TCPConn) {
 	client.Start()
 }
 
+// 有客户端发来一条消息。调用此方法会将msg放到队列，等待处理
 func (this *Server) onClientMsg(msg *Msg) {
 	this.processor.Append(msg)
+}
+
+func (this *Server) onUserLogin(client *Client) {
+	this.onlineUsers[client.userid] = client
+}
+
+func (this *Server) onUserLogout(client *Client) {
+	delete(this.onlineUsers, client.userid)
+}
+
+func (this *Server) isUserOnline(userid int) bool {
+	return this.onlineUsers[userid] != nil
 }

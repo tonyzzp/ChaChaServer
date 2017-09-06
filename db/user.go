@@ -24,9 +24,10 @@ func FindUserByUserName(userName string) *User {
 
 func InsertUser(u *User) bool {
 	_, e := ORM.Insert(u)
-	return e != nil
+	return e == nil
 }
 
+// 通过 userid  查询User
 func FetchUsrs(ids []int) []*User {
 	r := make([]*User, len(ids))
 	for i := 0; i < len(ids); i++ {

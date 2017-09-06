@@ -1,0 +1,25 @@
+syntax = "proto3";
+package protobeans;
+
+
+message Login {
+    string username = 1;
+    string password = 2;
+}
+
+message LoginResponse {
+    bool ok = 1;
+    string error = 2;
+}
+
+message Regist {
+    string username = 1;
+    string password = 2;
+}
+
+message RegistResponse {
+    bool ok = 1;
+    string error = 2;
+    int32 userId = 3;
+    string userName = 4;
+}

@@ -1,0 +1,50 @@
+syntax = "proto3";
+package protobeans;
+
+message SearchUser {
+    string userName = 1;
+}
+
+message SearchUserResp {
+    int32 userId = 1;
+    string userName = 2;
+    int32 sex = 3;
+    string head = 4;
+}
+
+message AddFriend {
+    int32 friendId = 1;
+    string message = 2;
+}
+
+message AddFriendResp {
+    bool ok = 1;
+    string error = 2;
+}
+
+message AddFriendConfirm {
+    bool ok = 1;
+    int32 friendId = 2;
+}
+
+message NewFriend {
+    int32 friendId = 1;
+    string userName = 2;
+    int32 sex = 3;
+    string head = 4;
+}
+
+message Friend {
+    int32 userId = 1;
+    string userName = 2;
+    int32 sex = 3;
+    string head = 4;
+}
+
+message FriendsList {
+    repeated Friend friends = 1;
+}
+
+message RemoveFriend {
+    int32 userId = 1;
+}

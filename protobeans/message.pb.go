@@ -21,7 +21,7 @@ type TextMessage struct {
 func (m *TextMessage) Reset()                    { *m = TextMessage{} }
 func (m *TextMessage) String() string            { return proto.CompactTextString(m) }
 func (*TextMessage) ProtoMessage()               {}
-func (*TextMessage) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{0} }
+func (*TextMessage) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{0} }
 
 func (m *TextMessage) GetReceiver() int32 {
 	if m != nil {
@@ -52,7 +52,7 @@ type TextMessgeResponse struct {
 func (m *TextMessgeResponse) Reset()                    { *m = TextMessgeResponse{} }
 func (m *TextMessgeResponse) String() string            { return proto.CompactTextString(m) }
 func (*TextMessgeResponse) ProtoMessage()               {}
-func (*TextMessgeResponse) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{1} }
+func (*TextMessgeResponse) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{1} }
 
 func (m *TextMessgeResponse) GetOk() bool {
 	if m != nil {
@@ -77,7 +77,7 @@ type ReceiveTextMessage struct {
 func (m *ReceiveTextMessage) Reset()                    { *m = ReceiveTextMessage{} }
 func (m *ReceiveTextMessage) String() string            { return proto.CompactTextString(m) }
 func (*ReceiveTextMessage) ProtoMessage()               {}
-func (*ReceiveTextMessage) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{2} }
+func (*ReceiveTextMessage) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{2} }
 
 func (m *ReceiveTextMessage) GetSender() int32 {
 	if m != nil {
@@ -106,9 +106,9 @@ func init() {
 	proto.RegisterType((*ReceiveTextMessage)(nil), "protobeans.ReceiveTextMessage")
 }
 
-func init() { proto.RegisterFile("message.proto", fileDescriptor1) }
+func init() { proto.RegisterFile("message.proto", fileDescriptor2) }
 
-var fileDescriptor1 = []byte{
+var fileDescriptor2 = []byte{
 	// 183 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x90, 0xbd, 0xaa, 0x83, 0x40,
 	0x10, 0x85, 0x59, 0x45, 0xaf, 0x77, 0x42, 0x52, 0x2c, 0x21, 0x2c, 0xa9, 0xc4, 0xca, 0x2a, 0x4d,

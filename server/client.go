@@ -5,10 +5,26 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/tonyzzp/ChaCha_Server/util"
 	"github.com/tonyzzp/gocommon"
+	"github.com/tonyzzp/gocommon/bytesutil"
 	"io"
 	"net"
+	"sync"
 	"time"
 )
+
+var (
+	mux = sync.Mutex{}
+	id  = 0
+)
+
+func sequenceId() int {
+	v := 0
+	mux.Lock()
+	id++
+	v = id
+	mux.Unlock()
+	return v
+}
 
 type Client struct {
 	server      *Server
@@ -17,10 +33,12 @@ type Client struct {
 	closeChan   chan int
 	sendingData chan []byte
 	userid      int
+	sequence    int
 }
 
 func NewClient(server *Server, conn *net.TCPConn) *Client {
 	c := new(Client)
+	c.sequence = sequenceId()
 	c.server = server
 	c.conn = conn
 	c.alive = true
@@ -50,25 +68,30 @@ func (this *Client) timeout(d time.Duration) {
 
 func (this *Client) SendData(cmd int, msg proto.Message) {
 	if this.alive {
-		data := util.Cmd2Bytes(cmd, msg)
-		this.sendingData <- data
+		if msg != nil {
+			data := util.Cmd2Bytes(cmd, msg)
+			this.sendingData <- data
+		} else {
+			data := bytesutil.Int32ToBytes(0)
+			data = append(data, bytesutil.Int32ToBytes(int32(cmd))...)
+			this.sendingData <- data
+		}
 	} else {
 		logs.Warn("Client.SendData 用户已经无效")
 		this.Close()
 	}
 }
 
+// 将client标记为已关闭。  并不会真的关闭connection,而是等待所有队列里的数据写完后才会真的关闭connection
 func (this *Client) Close() {
 	if !this.alive {
 		return
 	}
 	this.alive = false
-	this.server.onUserLogout(this)
 	close(this.closeChan)
-	this.conn.Close()
 	close(this.sendingData)
-	logs.Info("关闭客户端%v", this.conn.RemoteAddr())
-	this = new(Client)
+	this.server.onUserLogout(this)
+	logs.Info("即将关闭客户端%v", this.conn.RemoteAddr())
 }
 
 // 启动协程开始读取和发送数据
@@ -114,4 +137,6 @@ func (this *Client) startSend() {
 	for data := range this.sendingData {
 		this.conn.Write(data)
 	}
+	this.conn.Close()
+	logs.Info("%v 数据全部发送完成，close connection", this.conn.RemoteAddr())
 }

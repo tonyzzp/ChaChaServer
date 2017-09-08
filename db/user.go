@@ -29,11 +29,14 @@ func InsertUser(u *User) bool {
 
 // 通过 userid  查询User
 func FetchUsrs(ids []int) []*User {
-	r := make([]*User, len(ids))
+	var r []*User
 	for i := 0; i < len(ids); i++ {
 		id := ids[i]
 		u := FindUserById(id)
-		r[i] = u
+		if u != nil {
+			r = append(r, u)
+		}
 	}
+
 	return r
 }

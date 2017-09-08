@@ -23,6 +23,11 @@ func NewProcessor(server *Server) *Processor {
 	p.funcmap[CMD_CLIENT_LOGIN] = p.onLogin
 	p.funcmap[CMD_CLIENT_REGIST] = p.onRegist
 	p.funcmap[CMD_CLIENT_SEND_TEXT_MSG] = p.onSendTextMessage
+	p.funcmap[CMD_CLIENT_QUERY_USER] = p.onSearchUser
+	p.funcmap[CMD_CLIENT_ADD_FRIEND] = p.onAddFriend
+	p.funcmap[CMD_CLIENT_ADD_FRIEND_CONFIRM] = p.onAddFriendConfirm
+	p.funcmap[CMD_CLIENT_FRIENDS_LIST] = p.onFriendsList
+	p.funcmap[CMD_CLIENT_REMOVE_FRIEND] = p.onRemoveFriend
 
 	return p
 }
@@ -72,6 +77,11 @@ func (this *Processor) onLogin(msg *Msg) {
 	u := db.FindUserByUserName(bean.Username)
 	r := protobeans.LoginResponse{}
 	if u != nil && u.PassWord == bean.Password {
+		exist := this.server.onlineUsers[u.Id]
+		if exist != nil {
+			exist.SendData(CMD_SERVER_KICKOUT, nil)
+			exist.Close()
+		}
 		r.Ok = true
 		msg.Client.userid = u.Id
 		this.server.onUserLogin(msg.Client)
@@ -143,9 +153,110 @@ func (this *Processor) onSendTextMessage(msg *Msg) {
 			m.Content = bean.Content
 			m.SendTime = time.Now().Unix()
 			logs.Info("回复 %v", m)
-			go u.SendData(CMD_SERVER_SEND_TEXT_MSG, &m)
+			u.SendData(CMD_SERVER_SEND_TEXT_MSG, &m)
 		}
 	}
 	logs.Info("回复 %v", r)
 	msg.Client.SendData(CMD_CLIENT_SEND_TEXT_MSG_RESP, &r)
+}
+
+// 查找用户
+func (this *Processor) onSearchUser(msg *Msg) {
+	logs.Info("Processor.onSearchUser")
+	bean := new(protobeans.SearchUser)
+	proto.Unmarshal(msg.Data, bean)
+	logs.Info(bean)
+	u := db.FindUserByUserName(bean.UserName)
+	r := new(protobeans.SearchUserResp)
+	r.UserName = bean.UserName
+	if u != nil {
+		r.UserId = int32(u.Id)
+		r.Sex = int32(u.Sex)
+		r.Head = u.Head
+	}
+	msg.Client.SendData(CMD_CLIENT_QUERY_USER_RESP, r)
+}
+
+//请求添加好友
+func (this *Processor) onAddFriend(msg *Msg) {
+	logs.Info("Processor.onAddFriend")
+	bean := new(protobeans.AddFriend)
+	proto.Unmarshal(msg.Data, bean)
+	r := new(protobeans.AddFriendResp)
+	friend := this.server.onlineUsers[int(bean.FriendId)]
+	if friend != nil {
+		r.Ok = true
+
+		r2 := new(protobeans.AddFriend)
+		r2.FriendId = int32(msg.Client.userid)
+		r2.Message = bean.Message
+		friend.SendData(CMD_SERVER_ADD_FRIEND, r2)
+	} else {
+		r.Ok = false
+		r.Error = "对方不在线"
+	}
+	msg.Client.SendData(CMD_CLIENT_ADD_FRIEND_RESP, r)
+}
+
+//通过或拒绝添加好友
+func (this *Processor) onAddFriendConfirm(msg *Msg) {
+	logs.Info("Processor.onADdFriendConfirm")
+	bean := new(protobeans.AddFriendConfirm)
+	proto.Unmarshal(msg.Data, bean)
+	logs.Info(bean)
+	if bean.Ok {
+		friend := db.FindUserById(int(bean.FriendId))
+		if friend != nil {
+			db.AddFriend(msg.Client.userid, friend.Id)
+			db.AddFriend(friend.Id, msg.Client.userid)
+
+			r := new(protobeans.NewFriend)
+			r.FriendId = int32(friend.Id)
+			r.UserName = friend.UserName
+			r.Sex = int32(friend.Sex)
+			r.Head = friend.Head
+			msg.Client.SendData(CMD_SERVER_NEW_FRIEND, r)
+
+			fc := this.server.onlineUsers[int(bean.FriendId)]
+			if fc != nil {
+				u := db.FindUserById(msg.Client.userid)
+				r := new(protobeans.NewFriend)
+				r.FriendId = int32(u.Id)
+				r.UserName = u.UserName
+				r.Sex = int32(u.Sex)
+				r.Head = u.Head
+				fc.SendData(CMD_SERVER_NEW_FRIEND, r)
+			}
+		}
+	}
+}
+
+// 请求好友列表
+func (this *Processor) onFriendsList(msg *Msg) {
+	logs.Info("Processor.onFriendsList")
+	ids := db.FindFriends(msg.Client.userid)
+	logs.Info(ids)
+	users := db.FetchUsrs(ids)
+	logs.Info(users)
+	r := new(protobeans.FriendsList)
+	r.Friends = make([]*protobeans.Friend, len(ids))
+	for i := 0; i < len(users); i++ {
+		f := new(protobeans.Friend)
+		r.Friends[i] = f
+		u := users[i]
+		f.UserId = int32(u.Id)
+		f.UserName = u.UserName
+		f.Sex = int32(u.Sex)
+		f.Head = u.Head
+	}
+	msg.Client.SendData(CMD_CLIENT_FRIENDS_LIST_RESP, r)
+}
+
+// 删除好友
+func (this *Processor) onRemoveFriend(msg *Msg) {
+	logs.Info("Processor.onRemoveFriend")
+	r := new(protobeans.RemoveFriend)
+	proto.Unmarshal(msg.Data, r)
+	db.RemoveFriend(msg.Client.userid, int(r.UserId))
+	msg.Client.SendData(CMD_CLIENT_REMOVE_FRIEND_RESP, r)
 }

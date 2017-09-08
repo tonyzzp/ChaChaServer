@@ -50,3 +50,10 @@ func AddFriend(userid int, friendid int) {
 		friends[userid] = f
 	}
 }
+
+func RemoveFriend(userid int, friendid int) {
+	ORM.Raw("delete from friends where user_id=? and friend_id=?", userid, friendid).Exec()
+	ORM.Raw("delete from friends where user_id=? and friend_id=?", friendid, userid).Exec()
+	friends[userid] = nil
+	friends[friendid] = nil
+}

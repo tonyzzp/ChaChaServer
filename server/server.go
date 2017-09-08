@@ -65,7 +65,10 @@ func (this *Server) onUserLogin(client *Client) {
 }
 
 func (this *Server) onUserLogout(client *Client) {
-	delete(this.onlineUsers, client.userid)
+	exit := this.onlineUsers[client.userid]
+	if exit != nil && exit.sequence == client.sequence {
+		this.onlineUsers[client.userid] = nil
+	}
 }
 
 func (this *Server) isUserOnline(userid int) bool {

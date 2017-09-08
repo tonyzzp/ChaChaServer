@@ -42,13 +42,10 @@ func NewClient(server *Server, conn *net.TCPConn) *Client {
 	c.server = server
 	c.conn = conn
 	c.alive = true
-	c.init()
 	c.sendingData = make(chan []byte, 100)
-	return c
-}
 
-func (this *Client) init() {
-	this.timeout(time.Minute)
+	c.timeout(time.Minute)
+	return c
 }
 
 func (this *Client) RemoteAdd() net.Addr {

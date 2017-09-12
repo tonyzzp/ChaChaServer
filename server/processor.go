@@ -139,6 +139,7 @@ func (this *Processor) onSendTextMessage(msg *Msg) {
 	}
 
 	r := protobeans.TextMessgeResponse{}
+	r.Sequence = bean.Sequence
 	if !found {
 		r.Error = "对方不是你的好友"
 	} else {

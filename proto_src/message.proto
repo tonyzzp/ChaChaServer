@@ -3,14 +3,16 @@ package protobeans;
 option java_package = "me.izzp.chacha.proto";
 
 message TextMessage {
-    int32 receiver = 1;
-    string content = 2;
-    int64 sendTime = 3;
+    int64 sequence = 1;
+    int32 receiver = 2;
+    string content = 3;
+    int64 sendTime = 4;
 }
 
 message TextMessgeResponse {
     bool ok = 1;
     string error = 2;
+    int64 sequence = 3;
 }
 
 message ReceiveTextMessage {
